@@ -16,5 +16,5 @@ The example below fetches the Makefile for the Go language.
 -include artifacts/make/go.mk
 
 artifacts/make/%.mk:
-	curl --create-dirs -Lo "$@" "http://rinq.github.io/make/$*.mk"
+	@curl --create-dirs '-#Lo' "$@" "http://rinq.github.io/make/$*.mk?nonce=$(date +%s)"
 ```
