@@ -27,7 +27,7 @@
 #
 # The build-matrix is constructed from all possible permutations of MATRIX_OS and
 # MATRIX_ARCH. The default is to build only for the current OS and architecture.
--include artifacts/make/runtime.mk
+-include artifacts/make/runtime.in
 MATRIX_OS   ?= $(_OS)
 MATRIX_ARCH ?= $(_ARCH)
 
@@ -141,7 +141,7 @@ artifacts/tests/coverage/coverage.cov: $(_COV) | $(GOCOVMERGE)
 	@touch "$@" # no file is written if there are no tests
 	-go test "$(PKG)" -covermode=count -coverprofile="$@"
 
-artifacts/make/runtime.mk:
+artifacts/make/runtime.in:
 	echo "GOOS ?= $(shell go env GOOS)" > "$@"
 	echo "GOARCH ?= $(shell go env GOARCH)" >> "$@"
 
