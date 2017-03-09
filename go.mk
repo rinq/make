@@ -40,6 +40,28 @@ DEBUG_ARGS   ?= -v
 RELEASE_ARGS ?= -v -ldflags "-s -w"
 
 ################################################################################
+# Internal variables
+################################################################################
+
+# _MATRIX contains all permutations of MATRIX_ARCH and MATRIX_OS
+_MATRIX ?= $(foreach OS,$(MATRIX_OS),$(foreach ARCH,$(MATRIX_ARCH),$(OS)/$(ARCH)))
+
+# _SRC contains the paths to all Go source files.
+_SRC ?= $(shell find ./src -name *.go)
+
+# _PKGS contains the paths to all Go packages under ./src
+_PKGS ?= $(sort $(dir $(_SRC)))
+
+# _BINS contains the names of binaries (directories under ./src/cmd)
+_BINS ?= $(notdir $(shell find src/cmd -mindepth 1 -maxdepth 1 -type d 2>/dev/null))
+
+# _STEMS contains the binary names for each entry in the MATRIX (e.g. darwin/amd64/<bin>)
+_STEMS ?= $(foreach B,$(_MATRIX),$(foreach BIN,$(_BINS),$(B)/$(BIN)))
+
+# _COV contains the paths to a "package.cov" file for each package.
+_COV ?= $(foreach P,$(_PKGS),artifacts/tests/coverage/$(P)package.cov)
+
+################################################################################
 # Commands (Phony Targets)
 ################################################################################
 
@@ -107,6 +129,10 @@ ci: lint test-race $(_COV)
 # File Targets
 ################################################################################
 
+GLIDE := $(GOPATH)/bin/glide
+$(GLIDE):
+	go get -u github.com/Masterminds/glide
+
 vendor: glide.lock | $(GLIDE)
 	$(GLIDE) install
 	@touch vendor
@@ -115,20 +141,22 @@ glide.lock: glide.yaml | $(GLIDE)
 	$(GLIDE) update
 	@touch vendor
 
-artifacts/build/debug/%: vendor _req $(_SRC) | _use
-	CGO_ENABLED=$(CGO_ENABLED) \
-		GOOS="$(notdir $(dir $(@D)))" \
-		GOARCH="$(notdir $(@D))" \
-		go build $(DEBUG_ARGS) -o "$@" "./src/cmd/$(notdir $@)"
+artifacts/build/%: vendor _req $(_SRC) | _use
+	$(eval PARTS := $(subst /, ,$*))
+	$(eval BUILD := $(word 1,$(PARTS)))
+	$(eval OS    := $(word 2,$(PARTS)))
+	$(eval ARCH  := $(word 3,$(PARTS)))
+	$(eval BIN   := $(word 4,$(PARTS)))
+	$(eval ARGS  := $(if $(findstring debug,$(BUILD)),$(DEBUG_ARGS),$(RELEASE_ARGS)))
 
-artifacts/build/release/%: vendor _req $(_SRC) | _use
-	CGO_ENABLED=$(CGO_ENABLED) \
-		GOOS="$(notdir $(dir $(@D)))" \
-		GOARCH="$(notdir $(@D))" \
-		go build $(RELEASE_ARGS) -o "$@" "./src/cmd/$(notdir $@)"
+	CGO_ENABLED=$(CGO_ENABLED) GOOS="$(OS)" GOARCH="$(ARCH)" go build $(ARGS) -o "$@" "./src/cmd/$(BIN)"
 
 artifacts/tests/coverage/index.html: artifacts/tests/coverage/coverage.cov
 	go tool cover -html="$<" -o "$@"
+
+GOCOVMERGE := $(GOPATH)/bin/gocovmerge
+$(GOCOVMERGE):
+	go get -u github.com/wadey/gocovmerge
 
 artifacts/tests/coverage/coverage.cov: $(_COV) | $(GOCOVMERGE)
 	@mkdir -p $(@D)
@@ -144,37 +172,3 @@ artifacts/tests/coverage/coverage.cov: $(_COV) | $(GOCOVMERGE)
 artifacts/make/runtime.in:
 	echo "GOOS ?= $(shell go env GOOS)" > "$@"
 	echo "GOARCH ?= $(shell go env GOARCH)" >> "$@"
-
-################################################################################
-# Third-party dependencies.
-################################################################################
-
-GLIDE := $(GOPATH)/bin/glide
-$(GLIDE):
-	go get -u github.com/Masterminds/glide
-
-GOCOVMERGE := $(GOPATH)/bin/gocovmerge
-$(GOCOVMERGE):
-	go get -u github.com/wadey/gocovmerge
-
-################################################################################
-# Internal variables
-################################################################################
-
-# _MATRIX contains all permutations of MATRIX_ARCH and MATRIX_OS
-_MATRIX ?= $(foreach OS,$(MATRIX_OS),$(foreach ARCH,$(MATRIX_ARCH),$(OS)/$(ARCH)))
-
-# _SRC contains the paths to all Go source files.
-_SRC ?= $(shell find ./src -name *.go)
-
-# _PKGS contains the paths to all Go packages under ./src
-_PKGS ?= $(sort $(dir $(_SRC)))
-
-# _BINS contains the names of binaries (directories under ./src/cmd)
-_BINS ?= $(notdir $(shell find src/cmd -mindepth 1 -maxdepth 1 -type d 2>/dev/null))
-
-# _STEMS contains the binary names for each entry in the MATRIX (e.g. darwin/amd64/<bin>)
-_STEMS ?= $(foreach B,$(_MATRIX),$(foreach BIN,$(_BINS),$(B)/$(BIN)))
-
-# _COV contains the paths to a "package.cov" file for each package.
-_COV ?= $(foreach P,$(_PKGS),artifacts/tests/coverage/$(P)package.cov)
