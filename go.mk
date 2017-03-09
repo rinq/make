@@ -28,8 +28,8 @@
 # The build-matrix is constructed from all possible permutations of MATRIX_OS and
 # MATRIX_ARCH. The default is to build only for the current OS and architecture.
 -include artifacts/make/runtime.in
-MATRIX_OS   ?= $(_OS)
-MATRIX_ARCH ?= $(_ARCH)
+MATRIX_OS   ?= $(GOOS)
+MATRIX_ARCH ?= $(GOARCH)
 
 # Disable CGO by default.
 # See https://golang.org/cmd/cgo
@@ -56,7 +56,7 @@ test-race:
 
 # Build debug executables for the current OS and architecture.
 .PHONY: build
-build: $(addprefix artifacts/build/debug/$(_OS)/$(_ARCH)/,$(_BINS))
+build: $(addprefix artifacts/build/debug/$(GOOS)/$(GOARCH)/,$(_BINS))
 
 # Build debug executables for all OS and architecture combinations.
 .PHONY: debug
