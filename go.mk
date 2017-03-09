@@ -27,6 +27,7 @@
 #
 # The build-matrix is constructed from all possible permutations of MATRIX_OS and
 # MATRIX_ARCH. The default is to build only for the current OS and architecture.
+-include artifacts/make/runtime.mk
 MATRIX_OS   ?= $(_OS)
 MATRIX_ARCH ?= $(_ARCH)
 
@@ -115,10 +116,16 @@ glide.lock: glide.yaml | $(GLIDE)
 	@touch vendor
 
 artifacts/build/debug/%: vendor _req $(_SRC) | _use
-	CGO_ENABLED=$(CGO_ENABLED) artifacts/make/build.sh "$@" $(DEBUG_ARGS)
+	CGO_ENABLED=$(CGO_ENABLED) \
+		GOOS="$(notdir $(dir $(@D)))" \
+		GOARCH="$(notdir $(@D))" \
+		go build $(DEBUG_ARGS) -o "$@" "./src/cmd/$(notdir $@)"
 
 artifacts/build/release/%: vendor _req $(_SRC) | _use
-	CGO_ENABLED=$(CGO_ENABLED) artifacts/make/build.sh "$@" $(RELEASE_ARGS)
+	CGO_ENABLED=$(CGO_ENABLED) \
+		GOOS="$(notdir $(dir $(@D)))" \
+		GOARCH="$(notdir $(@D))" \
+		go build $(RELEASE_ARGS) -o "$@" "./src/cmd/$(notdir $@)"
 
 artifacts/tests/coverage/index.html: artifacts/tests/coverage/coverage.cov
 	go tool cover -html="$<" -o "$@"
@@ -133,6 +140,10 @@ artifacts/tests/coverage/coverage.cov: $(_COV) | $(GOCOVMERGE)
 	@mkdir -p "$(@D)"
 	@touch "$@" # no file is written if there are no tests
 	-go test "$(PKG)" -covermode=count -coverprofile="$@"
+
+artifacts/make/Makefile.runtime:
+	echo "GOOS ?= $(shell go env GOOS)" > "$@"
+	echo "GOARCH ?= $(shell go env GOARCH)" >> "$@"
 
 ################################################################################
 # Third-party dependencies.

@@ -1,20 +1,20 @@
 # Rinq Makefiles
 
 This repository contains common Makefile configurations used by Rinq projects.
-projects.
 
-The contents is not intended to be used by third-parties and may change at any
-time without notice.
+**The contents is not intended to be used by third-parties and may change at any
+time without notice.**
 
-## Go
+# Setup
 
-A `Makefile` for Go, Glide and Docker.
+- Include `artifacts/make/Makefile.<lang>` in the top of your project's `Makefile`.
+- Add a target that fetches the Makefile from GitHub.
 
-Usage:
+The example below fetches the Makefile for the Go language.
 
 ```Makefile
--include artifacts/make/Makefile.in
+-include artifacts/make/go.mk
 
-artifacts/make/Makefile.in:
-	bash <(curl -s https://rinq.github.io/make/go/install)
+artifacts/make/%:
+    curl -Lo "$@" "https://rinq.github.io/make/$*"
 ```
