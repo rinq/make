@@ -5,20 +5,7 @@
 # This file is generated automatically, do not edit it.
 #
 # To override the variables in this section, define them in the project's
-# Makefile before including this file. Additional build dependencies can be
-# specified by adding the _req and _use targets to the project's Makefile.
-#
-# The _req and _use targets are used as pre-requisites for all targets that
-# execute the project's Go source, including tests.
-#
-# They can be used to specify additional build dependencies other than the .go
-# source files, such as HTML assets, etc.
-#
-# _req is used a "normal" pre-requisite, whereas "_use" is an order-only
-# pre-requisite.
-#
-# See https://www.gnu.org/software/make/manual/html_node/Prerequisite-Types.html
-.PHONY: _req _use
+# Makefile before including this file.
 
 # Build matrix configuration.
 #
@@ -38,6 +25,19 @@ CGO_ENABLED ?= 0
 # Arguments passed to "go build" for debug / release builds.
 DEBUG_ARGS   ?= -v
 RELEASE_ARGS ?= -v -ldflags "-s -w"
+
+# The REQ and USE variables are used as pre-requisites for all targets that
+# execute the project's Go source, including tests.
+#
+# They can be used to specify additional build dependencies other than the .go
+# source files, such as HTML assets, etc.
+#
+# REQ is used a "normal" pre-requisite, whereas USE is an "order-only"
+# pre-requisite.
+#
+# See https://www.gnu.org/software/make/manual/html_node/Prerequisite-Types.html
+REQ ?=
+USE ?=
 
 ################################################################################
 # Internal variables
@@ -68,7 +68,7 @@ _COV ?= $(foreach P,$(_PKGS),artifacts/tests/coverage/$(P)package.cov)
 # Run all tests.
 .PHONY: test
 .DEFAULT_GOAL ?= test
-test: vendor _req | _use
+test: vendor $(REQ) | $(USE)
 	go test ./src/...
 
 # Run all tests with race detection enabled.
@@ -141,7 +141,7 @@ glide.lock: glide.yaml | $(GLIDE)
 	$(GLIDE) update
 	@touch vendor
 
-artifacts/build/%: vendor _req $(_SRC) | _use
+artifacts/build/%: vendor $(REQ) $(_SRC) | $(USE)
 	$(eval PARTS := $(subst /, ,$*))
 	$(eval BUILD := $(word 1,$(PARTS)))
 	$(eval OS    := $(word 2,$(PARTS)))
@@ -163,7 +163,7 @@ artifacts/tests/coverage/coverage.cov: $(_COV) | $(GOCOVMERGE)
 	$(GOCOVMERGE) $^ > "$@"
 
 .SECONDEXPANSION:
-%/package.cov: vendor _req $$(subst artifacts/tests/coverage/,,$$(@D))/*.go | _use
+%/package.cov: vendor $(REQ) $$(subst artifacts/tests/coverage/,,$$(@D))/*.go | $(USE)
 	$(eval PKG := $(subst artifacts/tests/coverage/,,$*))
 	@mkdir -p "$(@D)"
 	@touch "$@" # no file is written if there are no tests
