@@ -141,7 +141,7 @@ artifacts/tests/coverage/coverage.cov: $(_COV) | $(GOCOVMERGE)
 	@touch "$@" # no file is written if there are no tests
 	-go test "$(PKG)" -covermode=count -coverprofile="$@"
 
-artifacts/make/Makefile.runtime:
+artifacts/make/runtime.mk:
 	echo "GOOS ?= $(shell go env GOOS)" > "$@"
 	echo "GOARCH ?= $(shell go env GOARCH)" >> "$@"
 
