@@ -110,14 +110,11 @@ coverage-open: artifacts/tests/coverage/index.html
 
 # Perform code linting, syntax formatting, etc.
 .PHONY: lint
-lint: vendor
-	go vet ./src/...
-	! go fmt ./src/... | grep ^
+lint: artifacts/touch/go-lint
 
 # Perform pre-commit checks.
 .PHONY: prepare
-prepare: lint test
-	[ ! -f .travis.yml ] || travis lint
+prepare: lint test artifacts/touch/go-errcheck artifacts/touch/travis-lint
 
 # Run the CI build.
 #
@@ -132,6 +129,23 @@ ci: lint test-race $(_COV)
 GLIDE := $(GOPATH)/bin/glide
 $(GLIDE):
 	go get -u github.com/Masterminds/glide
+
+GOCOVMERGE := $(GOPATH)/bin/gocovmerge
+$(GOCOVMERGE):
+	go get -u github.com/wadey/gocovmerge
+
+MISSPELL := $(GOPATH)/bin/misspell
+$(MISSPELL):
+	go get github.com/client9/misspell/cmd/misspell
+
+ERRCHECK := $(GOPATH)/bin/errcheck
+$(ERRCHECK):
+	go get -u github.com/kisielk/errcheck
+
+GOMETALINTER := $(GOPATH)/bin/gometalinter.v1
+$(GOMETALINTER):
+	go get -u gopkg.in/alecthomas/gometalinter.v1
+	$(GOMETALINTER) --install 2>/dev/null
 
 vendor: glide.lock | $(GLIDE)
 	$(GLIDE) install
@@ -154,10 +168,6 @@ artifacts/build/%: vendor $(REQ) $(_SRC) | $(USE)
 artifacts/tests/coverage/index.html: artifacts/tests/coverage/coverage.cov
 	go tool cover -html="$<" -o "$@"
 
-GOCOVMERGE := $(GOPATH)/bin/gocovmerge
-$(GOCOVMERGE):
-	go get -u github.com/wadey/gocovmerge
-
 artifacts/tests/coverage/coverage.cov: $(_COV) | $(GOCOVMERGE)
 	@mkdir -p $(@D)
 	$(GOCOVMERGE) $^ > "$@"
@@ -168,6 +178,40 @@ artifacts/tests/coverage/coverage.cov: $(_COV) | $(GOCOVMERGE)
 	@mkdir -p "$(@D)"
 	@touch "$@" # no file is written if there are no tests
 	-go test "$(PKG)" -covermode=count -coverprofile="$@"
+
+artifacts/touch/go-lint: vendor $(_SRC) $(REQ) | $(MISSPELL) $(GOMETALINTER) $(USE)
+	go vet ./src/...
+	! go fmt ./src/... | grep ^
+
+	$(MISSPELL) -w -error -locale US ./src
+
+	$(GOMETALINTER) --vendor --disable-all --deadline=30s \
+		--enable=vet \
+		--enable=vetshadow \
+		--enable=ineffassign \
+		--enable=deadcode \
+		--enable=gosimple \
+		--enable=gofmt \
+		./src/...
+
+	-$(GOMETALINTER) --vendor --disable-all --deadline=30s --cyclo-over=15 \
+		--enable=golint \
+		--enable=goconst \
+		--enable=gocyclo \
+		./src/...
+
+	@mkdir -p "$(@D)"
+	@touch "$@"
+
+artifacts/touch/go-errcheck: vendor $(_SRC) $(REQ) | $(ERRCHECK) $(USE)
+	-$(ERRCHECK) ./src/...
+	@mkdir -p "$(@D)"
+	@touch "$@"
+
+artifacts/touch/travis-lint: $(wildcard .travis.yml)
+	! [ -f "$<" ] || travis lint
+	@mkdir -p "$(@D)"
+	@touch "$@"
 
 artifacts/make/runtime.in:
 	echo "GOOS ?= $(shell go env GOOS)" > "$@"
