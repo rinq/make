@@ -121,20 +121,20 @@ coverage-open: artifacts/tests/coverage/index.html
 
 # Perform code linting, syntax formatting, etc.
 .PHONY: lint
-lint: artifacts/touch/go-lint
+lint: artifacts/logs/lint
 
 # Perform pre-commit checks.
 .PHONY: prepare
-prepare: lint test artifacts/touch/go-errcheck artifacts/touch/travis-lint
+prepare: lint test artifacts/logs/errcheck artifacts/logs/travis-lint
 
 ifdef DOCKER_REPO
 
 .PHONY: docker
-docker: artifacts/touch/docker/$(DOCKER_TAG)
+docker: artifacts/logs/docker/$(DOCKER_TAG)
 
 .PHONY: docker-clean
 docker-clean:
-	rm -f artifacts/touch/docker/$(DOCKER_TAG)
+	rm -f artifacts/logs/docker/$(DOCKER_TAG)
 	-docker image rm $(DOCKER_REPO):$(DOCKER_TAG)
 
 .PHONY: docker-push
@@ -174,6 +174,8 @@ ci: lint test-race $(_COV)
 ################################################################################
 # File Targets
 ################################################################################
+
+.DELETE_ON_ERROR:
 
 GLIDE := $(GOPATH)/bin/glide
 $(GLIDE):
@@ -229,11 +231,13 @@ artifacts/tests/coverage/merged.cover.out: $(_COV) | $(GOCOVMERGE)
 	-go test "$(PKG)" -covermode=count -coverprofile="$@"
 	-go tool cover -func="$@"
 
-artifacts/touch/go-lint: vendor $(_SRC) $(REQ) | $(MISSPELL) $(GOMETALINTER) $(USE)
-	go vet ./src/...
-	! go fmt ./src/... | grep ^
+artifacts/logs/lint: vendor $(_SRC) $(REQ) | $(MISSPELL) $(GOMETALINTER) $(USE)
+	@mkdir -p "$(@D)"
 
-	$(MISSPELL) -w -error -locale US ./src
+	go vet ./src/... | tee "$@"
+	! go fmt ./src/... | tee -a "$@" | grep ^
+
+	$(MISSPELL) -w -error -locale US ./src | tee -a "$@"
 
 	$(GOMETALINTER) --vendor --disable-all --deadline=30s \
 		--enable=vet \
@@ -242,32 +246,35 @@ artifacts/touch/go-lint: vendor $(_SRC) $(REQ) | $(MISSPELL) $(GOMETALINTER) $(U
 		--enable=deadcode \
 		--enable=gosimple \
 		--enable=gofmt \
-		./src/...
+		./src/... | tee -a "$@"
 
 	-$(GOMETALINTER) --vendor --disable-all --deadline=30s --cyclo-over=15 \
 		--enable=golint \
 		--enable=goconst \
 		--enable=gocyclo \
-		./src/...
+		./src/... | tee -a "$@"
 
-	@mkdir -p "$(@D)"
-	@touch "$@"
 
-artifacts/touch/go-errcheck: vendor $(_SRC) $(REQ) | $(ERRCHECK) $(USE)
-	-$(ERRCHECK) ./src/...
+artifacts/logs/errcheck: vendor $(wildcard .errignore) $(_SRC) $(REQ) | $(ERRCHECK) $(USE)
 	@mkdir -p "$(@D)"
-	@touch "$@"
+ifeq (,$(wildcard .errignore))
+	-$(ERRCHECK) ./src/... | tee "$@"
+else
+	-$(ERRCHECK) -exclude .errignore ./src/... | tee "$@"
+endif
 
-artifacts/touch/travis-lint: $(wildcard .travis.yml)
-	! [ -f "$<" ] || travis lint
+artifacts/logs/travis-lint: $(wildcard .travis.yml)
 	@mkdir -p "$(@D)"
+ifeq (,$(wildcard .travis.yml))
 	@touch "$@"
+else
+	travis lint | tee "$@"
+endif
 
 .SECONDARY: $(addprefix artifacts/build/release/linux/amd64/,$(_BINS))
-artifacts/touch/docker/%: Dockerfile $(addprefix artifacts/build/release/linux/amd64/,$(_BINS))
-	docker build -t $(DOCKER_REPO):$* .
+artifacts/logs/docker/%: Dockerfile $(addprefix artifacts/build/release/linux/amd64/,$(_BINS))
 	@mkdir -p "$(@D)"
-	@touch "$@"
+	docker build -t $(DOCKER_REPO):$* . | tee "$@"
 
 artifacts/make/runtime.in:
 	echo "GOOS ?= $(shell go env GOOS)" > "$@"
