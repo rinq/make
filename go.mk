@@ -142,13 +142,18 @@ docker-push: docker
 	docker push $(DOCKER_REPO):$(DOCKER_TAG)
 
 ifdef TRAVIS_TAG
+	$(eval PARTS := $(subst ., ,$(DOCKER_TAG)))
+	$(eval MAJOR := $(word 1,$(PARTS)))
+	$(eval MINOR := $(word 2,$(PARTS)))
+	$(eval PATCH := $(word 3,$(PARTS)))
+
 	docker tag $(DOCKER_REPO):$(DOCKER_TAG) $(DOCKER_REPO):latest
-	docker tag $(DOCKER_REPO):$(DOCKER_TAG) $(DOCKER_REPO):$(shell echo $(DOCKER_TAG) | egrep -o "^\d+.\d+")
-	docker tag $(DOCKER_REPO):$(DOCKER_TAG) $(DOCKER_REPO):$(shell echo $(DOCKER_TAG) | egrep -o "^\d+")
+	docker tag $(DOCKER_REPO):$(DOCKER_TAG) $(DOCKER_REPO):$(MAJOR)
+	docker tag $(DOCKER_REPO):$(DOCKER_TAG) $(DOCKER_REPO):$(MAJOR).$(MINOR)
 
 	docker push $(DOCKER_REPO):latest
-	docker push $(DOCKER_REPO):$(shell echo $(DOCKER_TAG) | egrep -o "^\d+.\d+")
-	docker push $(DOCKER_REPO):$(shell echo $(DOCKER_TAG) | egrep -o "^\d+")
+	docker push $(DOCKER_REPO):$(MAJOR)
+	docker push $(DOCKER_REPO):$(MAJOR).$(MINOR)
 endif
 
 else # ifdef DOCKER_REPO
