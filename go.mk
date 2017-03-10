@@ -67,8 +67,8 @@ _BINS ?= $(notdir $(shell find src/cmd -mindepth 1 -maxdepth 1 -type d 2>/dev/nu
 # _STEMS contains the binary names for each entry in the MATRIX (e.g. darwin/amd64/<bin>)
 _STEMS ?= $(foreach B,$(_MATRIX),$(foreach BIN,$(_BINS),$(B)/$(BIN)))
 
-# _COV contains the paths to a "package.cov" file for each package.
-_COV ?= $(foreach P,$(_PKGS),artifacts/tests/coverage/$(P)package.cov)
+# _COV contains the paths to a "cover.out" file for each package.
+_COV ?= $(foreach P,$(_PKGS),artifacts/tests/coverage/$(P)cover.out)
 
 ################################################################################
 # Commands (Phony Targets)
@@ -214,19 +214,20 @@ artifacts/build/%: vendor $(REQ) $(_SRC) | $(USE)
 
 	CGO_ENABLED=$(CGO_ENABLED) GOOS="$(OS)" GOARCH="$(ARCH)" go build $(ARGS) -o "$@" "./src/cmd/$(BIN)"
 
-artifacts/tests/coverage/index.html: artifacts/tests/coverage/coverage.cov
+artifacts/tests/coverage/index.html: artifacts/tests/coverage/merged.cover.out
 	go tool cover -html="$<" -o "$@"
 
-artifacts/tests/coverage/coverage.cov: $(_COV) | $(GOCOVMERGE)
+artifacts/tests/coverage/merged.cover.out: $(_COV) | $(GOCOVMERGE)
 	@mkdir -p $(@D)
 	$(GOCOVMERGE) $^ > "$@"
 
 .SECONDEXPANSION:
-%/package.cov: vendor $(REQ) $$(subst artifacts/tests/coverage/,,$$(@D))/*.go | $(USE)
+%/cover.out: vendor $$(subst artifacts/tests/coverage/,,$$(@D))/*.go $(REQ) | $(USE)
 	$(eval PKG := $(subst artifacts/tests/coverage/,,$*))
 	@mkdir -p "$(@D)"
 	@touch "$@" # no file is written if there are no tests
 	-go test "$(PKG)" -covermode=count -coverprofile="$@"
+	-go tool cover -func="$@"
 
 artifacts/touch/go-lint: vendor $(_SRC) $(REQ) | $(MISSPELL) $(GOMETALINTER) $(USE)
 	go vet ./src/...
