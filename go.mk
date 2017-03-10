@@ -258,9 +258,9 @@ artifacts/logs/lint: vendor $(_SRC) $(REQ) | $(MISSPELL) $(GOMETALINTER) $(USE)
 artifacts/logs/errcheck: vendor $(wildcard .errignore) $(_SRC) $(REQ) | $(ERRCHECK) $(USE)
 	@mkdir -p "$(@D)"
 ifeq (,$(wildcard .errignore))
-	-$(ERRCHECK) ./src/... | tee "$@"
+	-$(ERRCHECK) -ignoretests ./src/... | tee "$@"
 else
-	-$(ERRCHECK) -exclude .errignore ./src/... | tee "$@"
+	-$(ERRCHECK) -ignoretests -exclude .errignore ./src/... | tee "$@"
 endif
 
 artifacts/logs/travis-lint: $(wildcard .travis.yml)
