@@ -73,7 +73,7 @@ test: vendor $(REQ) | $(USE)
 
 # Run all tests with race detection enabled.
 .PHONY: test-race
-test-race:
+test-race: vendor $(REQ) | $(USE)
 	go test -race ./src/...
 
 # Build debug executables for the current OS and architecture.
