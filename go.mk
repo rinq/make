@@ -39,6 +39,15 @@ RELEASE_ARGS ?= -v -ldflags "-s -w"
 REQ ?=
 USE ?=
 
+# Docker build configuration.
+# DOCKER_REPO must be defined in the project's Makefile.
+
+ifdef TRAVIS_TAG
+DOCKER_TAG ?= $(TRAVIS_TAG)
+else
+DOCKER_TAG ?= dev
+endif
+
 ################################################################################
 # Internal variables
 ################################################################################
@@ -82,10 +91,12 @@ build: $(addprefix artifacts/build/debug/$(GOOS)/$(GOARCH)/,$(_BINS))
 
 # Build debug executables for all OS and architecture combinations.
 .PHONY: debug
+.SECONDARY: $(addprefix artifacts/build/debug/,$(_STEMS))
 debug: $(addprefix artifacts/build/debug/,$(_STEMS))
 
 # Build release executables for all OS and architecture combinations.
 .PHONY: release
+.SECONDARY: $(addprefix artifacts/build/release/,$(_STEMS))
 release: $(addprefix artifacts/build/release/,$(_STEMS))
 
 # Remove all files that match the patterns .gitignore.
@@ -115,6 +126,29 @@ lint: artifacts/touch/go-lint
 # Perform pre-commit checks.
 .PHONY: prepare
 prepare: lint test artifacts/touch/go-errcheck artifacts/touch/travis-lint
+
+ifdef DOCKER_REPO
+
+.PHONY: docker
+docker: artifacts/touch/docker/$(DOCKER_TAG)
+
+.PHONY: docker-clean
+docker-clean:
+	rm -f artifacts/touch/docker/$(DOCKER_TAG)
+	-docker image rm $(DOCKER_REPO):$(DOCKER_TAG)
+
+.PHONY: docker-push
+docker-push: docker
+	docker push $(DOCKER_REPO):$(DOCKER_TAG)
+
+else # ifdef DOCKER_REPO
+
+.PHONY: docker
+docker:
+	@echo "DOCKER_REPO not defined in Makefile"
+	@false
+
+endif # ifdef DOCKER_REPO
 
 # Run the CI build.
 #
@@ -210,6 +244,12 @@ artifacts/touch/go-errcheck: vendor $(_SRC) $(REQ) | $(ERRCHECK) $(USE)
 
 artifacts/touch/travis-lint: $(wildcard .travis.yml)
 	! [ -f "$<" ] || travis lint
+	@mkdir -p "$(@D)"
+	@touch "$@"
+
+.SECONDARY: $(addprefix artifacts/build/release/linux/amd64/,$(_BINS))
+artifacts/touch/docker/%: Dockerfile $(addprefix artifacts/build/release/linux/amd64/,$(_BINS))
+	docker build --compress -t $(DOCKER_REPO):$* .
 	@mkdir -p "$(@D)"
 	@touch "$@"
 
