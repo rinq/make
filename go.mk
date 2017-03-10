@@ -125,7 +125,7 @@ lint: artifacts/logs/lint
 
 # Perform pre-commit checks.
 .PHONY: prepare
-prepare: lint test artifacts/logs/errcheck artifacts/logs/travis-lint
+prepare: lint artifacts/logs/errcheck test artifacts/logs/travis-lint
 
 ifdef DOCKER_REPO
 
@@ -253,7 +253,6 @@ artifacts/logs/lint: vendor $(_SRC) $(REQ) | $(MISSPELL) $(GOMETALINTER) $(USE)
 		--enable=goconst \
 		--enable=gocyclo \
 		./src/... | tee -a "$@"
-
 
 artifacts/logs/errcheck: vendor $(wildcard .errignore) $(_SRC) $(REQ) | $(ERRCHECK) $(USE)
 	@mkdir -p "$(@D)"
