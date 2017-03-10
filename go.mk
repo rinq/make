@@ -141,6 +141,16 @@ docker-clean:
 docker-push: docker
 	docker push $(DOCKER_REPO):$(DOCKER_TAG)
 
+ifdef TRAVIS_TAG
+	docker tag $(DOCKER_REPO):$(DOCKER_TAG) $(DOCKER_REPO):latest
+	docker tag $(DOCKER_REPO):$(DOCKER_TAG) $(DOCKER_REPO):$(shell echo $(DOCKER_TAG) | egrep -o "^\d+.\d+")
+	docker tag $(DOCKER_REPO):$(DOCKER_TAG) $(DOCKER_REPO):$(shell echo $(DOCKER_TAG) | egrep -o "^\d+")
+
+	docker push $(DOCKER_REPO):latest
+	docker push $(DOCKER_REPO):$(shell echo $(DOCKER_TAG) | egrep -o "^\d+.\d+")
+	docker push $(DOCKER_REPO):$(shell echo $(DOCKER_TAG) | egrep -o "^\d+")
+endif
+
 else # ifdef DOCKER_REPO
 
 .PHONY: docker
@@ -170,7 +180,7 @@ $(GOCOVMERGE):
 
 MISSPELL := $(GOPATH)/bin/misspell
 $(MISSPELL):
-	go get github.com/client9/misspell/cmd/misspell
+	go get -u github.com/client9/misspell/cmd/misspell
 
 ERRCHECK := $(GOPATH)/bin/errcheck
 $(ERRCHECK):
