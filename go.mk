@@ -259,7 +259,7 @@ artifacts/touch/travis-lint: $(wildcard .travis.yml)
 
 .SECONDARY: $(addprefix artifacts/build/release/linux/amd64/,$(_BINS))
 artifacts/touch/docker/%: Dockerfile $(addprefix artifacts/build/release/linux/amd64/,$(_BINS))
-	docker build --compress -t $(DOCKER_REPO):$* .
+	docker build -t $(DOCKER_REPO):$* .
 	@mkdir -p "$(@D)"
 	@touch "$@"
 
