@@ -105,7 +105,7 @@ clean-all:: clean
 	rm -rf ./vendor
 
 # Remove files that match the patterns .gitignore, excluding the vendor folder.
-.PHONY: clean
+.PHONY: clean docker-clean
 clean::
 	@git check-ignore ./* | grep -v ^./vendor | xargs -t -n1 rm -rf
 
@@ -133,7 +133,7 @@ ifdef DOCKER_REPO
 docker: artifacts/logs/docker/$(DOCKER_TAG)
 
 .PHONY: docker-clean
-docker-clean:
+docker-clean::
 	rm -f artifacts/logs/docker/$(DOCKER_TAG)
 	-docker image rm $(DOCKER_REPO):$(DOCKER_TAG)
 
