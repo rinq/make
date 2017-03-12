@@ -1,0 +1,2 @@
+set -e
+curl --create-dirs '-#Lo' "$1" "https://rinq.github.io/make/$(basename $1)?nonce=$(date +%s)"
