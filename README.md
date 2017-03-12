@@ -13,6 +13,7 @@ time without notice.**
 The example below fetches the Makefile for the Go language.
 
 ```Makefile
+SHELL := /bin/bash
 -include artifacts/make/go.mk
 
 artifacts/make/%.mk:
