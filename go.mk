@@ -100,13 +100,13 @@ debug: $(addprefix artifacts/build/debug/,$(_STEMS))
 release: $(addprefix artifacts/build/release/,$(_STEMS))
 
 # Remove all files that match the patterns .gitignore.
-.PHONY: clean
-clean:
-	@git check-ignore ./* | xargs -t -n1 rm -rf
+.PHONY: clean-all
+clean-all:: clean
+	rm -rf ./vendor
 
 # Remove files that match the patterns .gitignore, excluding the vendor folder.
-.PHONY: clean-nv
-clean-nv:
+.PHONY: clean
+clean::
 	@git check-ignore ./* | grep -v ^./vendor | xargs -t -n1 rm -rf
 
 # Generate an HTML code coverage report.
