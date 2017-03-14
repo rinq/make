@@ -56,7 +56,7 @@ endif
 _MATRIX ?= $(foreach OS,$(MATRIX_OS),$(foreach ARCH,$(MATRIX_ARCH),$(OS)/$(ARCH)))
 
 # _SRC contains the paths to all Go source files.
-_SRC ?= $(shell find ./src -name *.go)
+_SRC ?= $(shell find ./src -name *.go 2> /dev/null)
 
 # _PKGS contains the paths to all Go packages under ./src
 _PKGS ?= $(sort $(dir $(_SRC)))
