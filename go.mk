@@ -26,6 +26,9 @@ CGO_ENABLED ?= 0
 DEBUG_ARGS   ?= -v
 RELEASE_ARGS ?= -v -ldflags "-s -w"
 
+# Arguments passed to "go test".
+TEST_ARGS ?=
+
 # The REQ and USE variables are used as pre-requisites for all targets that
 # execute the project's Go source, including tests.
 #
@@ -78,12 +81,7 @@ _COV ?= $(foreach P,$(_PKGS),artifacts/tests/coverage/$(P)cover.out)
 .PHONY: test
 .DEFAULT_GOAL ?= test
 test: vendor $(REQ) | $(USE)
-	go test ./src/...
-
-# Run all tests with race detection enabled.
-.PHONY: test-race
-test-race: vendor $(REQ) | $(USE)
-	go test -race ./src/...
+	go test $(TEST_ARGS) ./src/...
 
 # Build debug executables for the current OS and architecture.
 .PHONY: build
@@ -169,7 +167,8 @@ endif # ifdef DOCKER_REPO
 #
 # TODO: no need for the merged coverage file under travis CI, as codecov.io
 .PHONY: ci
-ci: lint test-race $(_COV)
+ci: lint $(_COV)
+	go test -race ./src/...
 
 ################################################################################
 # File Targets
@@ -228,7 +227,7 @@ artifacts/tests/coverage/merged.cover.out: $(_COV) | $(GOCOVMERGE)
 	$(eval PKG := $(subst artifacts/tests/coverage/,,$*))
 	@mkdir -p "$(@D)"
 	@touch "$@" # no file is written if there are no tests
-	-go test "$(PKG)" -covermode=count -coverprofile="$@"
+	-go test $(TEST_ARGS) -covermode=count -coverprofile="$@" "$(PKG)"
 	-go tool cover -func="$@"
 
 artifacts/logs/lint: vendor $(_SRC) $(REQ) | $(MISSPELL) $(GOMETALINTER) $(USE)
