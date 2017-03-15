@@ -14,9 +14,9 @@
 #
 # The build-matrix is constructed from all possible permutations of MATRIX_OS and
 # MATRIX_ARCH. The default is to build only for the current OS and architecture.
--include artifacts/make/runtime.in
-MATRIX_OS   ?= $(GOOS)
-MATRIX_ARCH ?= $(GOARCH)
+-include artifacts/make/go-env.in
+MATRIX_OS   ?= $(GOHOSTOS)
+MATRIX_ARCH ?= $(GOHOSTARCH)
 
 # Disable CGO by default.
 # See https://golang.org/cmd/cgo
@@ -106,6 +106,10 @@ clean-all:: clean
 .PHONY: clean docker-clean
 clean::
 	@git check-ignore ./* | grep -v ^./vendor | xargs -t -n1 rm -rf
+
+.PHONY: clean-coverage
+clean-coverage:
+	rm -rf artifacts/tests/coverage
 
 # Generate an HTML code coverage report.
 .PHONY: coverage
@@ -274,6 +278,7 @@ artifacts/logs/docker/%: Dockerfile $(addprefix artifacts/build/release/linux/am
 	@mkdir -p "$(@D)"
 	docker build -t $(DOCKER_REPO):$* . | tee "$@"
 
-artifacts/make/runtime.in:
-	echo "GOOS ?= $(shell go env GOOS)" > "$@"
-	echo "GOARCH ?= $(shell go env GOARCH)" >> "$@"
+artifacts/make/go-env.in:
+	# extract the go environment values, even if they're not explicitly set
+	# as environment variables, and convert them to Makefile format.
+	env -i -S "$$(go env)" | sed -n 's/^\([^=]*\)=\(..*\)/\1 ?= \2/gp' > "$@"
