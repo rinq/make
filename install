@@ -1,3 +1,2 @@
 set -e
-set -x
 curl --create-dirs '-#Lo' "artifacts/make/$1.mk" "https://rinq.github.io/make/$1/Makefile?nonce=$(date +%s)"
