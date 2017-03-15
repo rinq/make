@@ -278,7 +278,7 @@ artifacts/logs/docker/%: Dockerfile $(addprefix artifacts/build/release/linux/am
 	@mkdir -p "$(@D)"
 	docker build -t $(DOCKER_REPO):$* . | tee "$@"
 
+# extract the go environment values, even if they're not explicitly set
+# as environment variables, and convert them to Makefile format.
 artifacts/make/go-env.in:
-	# extract the go environment values, even if they're not explicitly set
-	# as environment variables, and convert them to Makefile format.
 	env -i -S "$$(go env)" | sed -n 's/^\([^=]*\)=\(..*\)/\1 ?= \2/gp' > "$@"
