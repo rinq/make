@@ -1,7 +1,7 @@
-_INIT ?= codecov.yml .gitignore LICENSE.md CHANGELOG.md .github/CONTRIBUTING.md 
+_INIT ?= codecov.yml .gitignore LICENSE.md CHANGELOG.md .github/CONTRIBUTING.md
 
 .PHONY:
 init:: $(_INIT)
 
 $(_INIT):
-	curl --create-dirs '-#Lo' "$@" "https://rinq.github.io/make/common/skel/$@?nonce=$(date +%s)"
+	curl --create-dirs '-#Lo' "$@" "https://rinq.github.io/make/common/go/$@?nonce=$$(date +%s)"
