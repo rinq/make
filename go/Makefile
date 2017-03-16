@@ -2,6 +2,10 @@
 # Rinq Makefile for Go
 ################################################################################
 
+ifeq ($(.DEFAULT_GOAL),)
+.DEFAULT_GOAL := test
+endif
+
 -include artifacts/make/common.mk
 
 # This file is generated automatically, do not edit it.
@@ -81,7 +85,6 @@ _COV ?= $(foreach P,$(_PKGS),artifacts/tests/coverage/$(P)cover.out)
 
 # Run all tests.
 .PHONY: test
-.DEFAULT_GOAL ?= test
 test: vendor $(REQ) | $(USE)
 	go test $(TEST_ARGS) ./src/...
 
