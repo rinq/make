@@ -209,6 +209,9 @@ glide.lock: glide.yaml | $(GLIDE)
 	$(GLIDE) update
 	@touch vendor
 
+glide.yaml: | $(GLIDE)
+	$(GLIDE) init --non-interactive
+
 artifacts/build/%: vendor $(REQ) $(_SRC) | $(USE)
 	$(eval PARTS := $(subst /, ,$*))
 	$(eval BUILD := $(word 1,$(PARTS)))
