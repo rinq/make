@@ -295,4 +295,4 @@ artifacts/make/go-env.in:
 init:: .travis.yml
 
 .travis.yml:
-	curl --create-dirs '-#Lo' "$@" "https://rinq.github.io/make/go/skel/$@?nonce=$$(date +%s)"
+	curl --create-dirs '-#Lo' "$@" "https://rinq.github.io/make/go/skel/$(@:.%=%)?nonce=$$(date +%s)"
