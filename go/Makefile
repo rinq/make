@@ -2,6 +2,8 @@
 # Rinq Makefile for Go
 ################################################################################
 
+-include artifacts/make/common.mk
+
 # This file is generated automatically, do not edit it.
 #
 # To override the variables in this section, define them in the project's
@@ -285,3 +287,9 @@ artifacts/logs/docker/%: Dockerfile $(addprefix artifacts/build/release/linux/am
 # as environment variables, and convert them to Makefile format.
 artifacts/make/go-env.in:
 	env -i -S "$$(go env)" | sed -n 's/^\([^=]*\)=\(..*\)/\1 ?= \2/gp' > "$@"
+
+.PHONY: init
+init:: .travis.yml
+
+.travis.yml:
+	curl --create-dirs '-#Lo' "$@" "https://rinq.github.io/make/common/go/$@?nonce=$(date +%s)"
