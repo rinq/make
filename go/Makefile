@@ -241,12 +241,13 @@ artifacts/build/%: vendor $(REQ) $(_SRC) | $(USE)
 
 artifacts/archives/$(PROJECT_NAME)-%.tar.gz: $$(addprefix artifacts/build/release/$$(subst -,/,$$*)/,$(_BINS))
 	@mkdir -p "$(@D)"
-	cd "$(dir $<)" && tar -cvzf "$(realpath $(@D))/$(notdir $@)" $(_BINS)
+	cd "$(dir $<)" && tar -cvzf archive.tmp $(_BINS)
+	mv "$(dir $<)archive.tmp" "$@"
 
 artifacts/archives/$(PROJECT_NAME)-%.zip: $$(addprefix artifacts/build/release/$$(subst -,/,$$*)/,$(_BINS_WIN))
 	@mkdir -p "$(@D)"
-	cd "$(dir $<)" && zip "$(realpath $(@D))/$(notdir $@)" $(_BINS_WIN)
-
+	cd "$(dir $<)" && zip archive.tmp $(_BINS_WIN)
+	mv "$(dir $<)archive.tmp" "$@"
 
 artifacts/tests/coverage/index.html: artifacts/tests/coverage/merged.cover.out
 	go tool cover -html="$<" -o "$@"
