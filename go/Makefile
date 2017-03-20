@@ -310,7 +310,7 @@ artifacts/logs/docker/%: Dockerfile $(addprefix artifacts/build/release/linux/am
 # extract the go environment values, even if they're not explicitly set
 # as environment variables, and convert them to Makefile format.
 artifacts/make/go-env.in:
-	env -i -S "$$(go env)" | sed -n 's/^\([^=]*\)=\(..*\)/\1 ?= \2/gp' > "$@"
+	env -i $(shell go env) | sed -n 's/^\([^=]*\)=\(..*\)/\1 ?= \2/gp' > "$@"
 
 .PHONY: init
 init:: .travis.yml
