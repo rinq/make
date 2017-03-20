@@ -8,10 +8,14 @@ endif
 
 -include artifacts/make/common.mk
 
-# This file is generated automatically, do not edit it.
-#
 # To override the variables in this section, define them in the project's
 # Makefile before including this file.
+
+PROJECT_NAME ?= $(notdir $(shell pwd))
+
+# Disable CGO by default.
+# See https://golang.org/cmd/cgo
+CGO_ENABLED ?= 0
 
 # Build matrix configuration.
 #
@@ -23,10 +27,6 @@ endif
 -include artifacts/make/go-env.in
 MATRIX_OS   ?= $(GOHOSTOS)
 MATRIX_ARCH ?= $(GOHOSTARCH)
-
-# Disable CGO by default.
-# See https://golang.org/cmd/cgo
-CGO_ENABLED ?= 0
 
 # Arguments passed to "go build" for debug / release builds.
 DEBUG_ARGS   ?= -v
@@ -63,6 +63,8 @@ endif
 
 # _MATRIX contains all permutations of MATRIX_ARCH and MATRIX_OS
 _MATRIX ?= $(foreach OS,$(MATRIX_OS),$(foreach ARCH,$(MATRIX_ARCH),$(OS)/$(ARCH)))
+_MATRIX_NIX := $(filter-out windows/%,$(_MATRIX))
+_MATRIX_WIN := $(filter windows/%,$(_MATRIX))
 
 # _SRC contains the paths to all Go source files.
 _SRC ?= $(shell find ./src -name *.go 2> /dev/null)
@@ -72,9 +74,13 @@ _PKGS ?= $(sort $(dir $(_SRC)))
 
 # _BINS contains the names of binaries (directories under ./src/cmd)
 _BINS ?= $(notdir $(shell find src/cmd -mindepth 1 -maxdepth 1 -type d 2>/dev/null))
+_BINS_WIN := $(addsuffix .exe,$(_BINS))
+
 
 # _STEMS contains the binary names for each entry in the MATRIX (e.g. darwin/amd64/<bin>)
-_STEMS ?= $(foreach B,$(_MATRIX),$(foreach BIN,$(_BINS),$(B)/$(BIN)))
+_STEMS_NIX := $(foreach B,$(_MATRIX_NIX),$(foreach BIN,$(_BINS),$(B)/$(BIN)))
+_STEMS_WIN := $(foreach B,$(_MATRIX_WIN),$(foreach BIN,$(_BINS_WIN),$(B)/$(BIN)))
+_STEMS ?= $(_STEMS_NIX) $(_STEMS_WIN)
 
 # _COV contains the paths to a "cover.out" file for each package.
 _COV ?= $(foreach P,$(_PKGS),artifacts/tests/coverage/$(P)cover.out)
@@ -101,6 +107,10 @@ debug: $(addprefix artifacts/build/debug/,$(_STEMS))
 .PHONY: release
 .SECONDARY: $(addprefix artifacts/build/release/,$(_STEMS))
 release: $(addprefix artifacts/build/release/,$(_STEMS))
+
+.PHONY: archives
+archives: $(addprefix artifacts/archives/$(PROJECT_NAME)-,$(addsuffix .tar.gz,$(subst /,-,$(_MATRIX_NIX))))
+archives: $(addprefix artifacts/archives/$(PROJECT_NAME)-,$(addsuffix .zip,$(subst /,-,$(_MATRIX_WIN))))
 
 # Remove all files that match the patterns .gitignore.
 .PHONY: clean-all
@@ -184,6 +194,7 @@ ci: lint $(_COV)
 ################################################################################
 
 .DELETE_ON_ERROR:
+.SECONDEXPANSION:
 
 GLIDE := $(GOPATH)/bin/glide
 $(GLIDE):
@@ -223,9 +234,19 @@ artifacts/build/%: vendor $(REQ) $(_SRC) | $(USE)
 	$(eval OS    := $(word 2,$(PARTS)))
 	$(eval ARCH  := $(word 3,$(PARTS)))
 	$(eval BIN   := $(word 4,$(PARTS)))
+	$(eval PKG   := $(basename $(BIN)))
 	$(eval ARGS  := $(if $(findstring debug,$(BUILD)),$(DEBUG_ARGS),$(RELEASE_ARGS)))
 
-	CGO_ENABLED=$(CGO_ENABLED) GOOS="$(OS)" GOARCH="$(ARCH)" go build $(ARGS) -o "$@" "./src/cmd/$(BIN)"
+	CGO_ENABLED=$(CGO_ENABLED) GOOS="$(OS)" GOARCH="$(ARCH)" go build $(ARGS) -o "$@" "./src/cmd/$(PKG)"
+
+artifacts/archives/$(PROJECT_NAME)-%.tar.gz: $$(addprefix artifacts/build/release/$$(subst -,/,$$*)/,$(_BINS))
+	@mkdir -p "$(@D)"
+	cd "$(dir $<)" && tar -cvzf "$(realpath $(@D))/$(notdir $@)" $(_BINS)
+
+artifacts/archives/$(PROJECT_NAME)-%.zip: $$(addprefix artifacts/build/release/$$(subst -,/,$$*)/,$(_BINS_WIN))
+	@mkdir -p "$(@D)"
+	cd "$(dir $<)" && zip "$(realpath $(@D))/$(notdir $@)" $(_BINS_WIN)
+
 
 artifacts/tests/coverage/index.html: artifacts/tests/coverage/merged.cover.out
 	go tool cover -html="$<" -o "$@"
@@ -234,7 +255,6 @@ artifacts/tests/coverage/merged.cover.out: $(_COV) | $(GOCOVMERGE)
 	@mkdir -p $(@D)
 	$(GOCOVMERGE) $^ > "$@"
 
-.SECONDEXPANSION:
 %/cover.out: vendor $$(subst artifacts/tests/coverage/,,$$(@D))/*.go $(REQ) | $(USE)
 	$(eval PKG := $(subst artifacts/tests/coverage/,,$*))
 	@mkdir -p "$(@D)"
