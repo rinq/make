@@ -197,6 +197,10 @@ ci: lint $(_COV)
 .SECONDEXPANSION:
 
 GLIDE := $(GOPATH)/bin/glide
+
+ # workaround for https://github.com/Masterminds/glide/issues/771
+GLIDE_EXEC := GOPATH="$(GOPATH)" $(GLIDE)
+
 $(GLIDE):
 	go get -u github.com/Masterminds/glide
 
@@ -218,15 +222,15 @@ $(GOMETALINTER):
 	$(GOMETALINTER) --install 2>/dev/null
 
 vendor: glide.lock | $(GLIDE)
-	$(GLIDE) install
+	$(GLIDE_EXEC) install
 	@touch vendor
 
 glide.lock: glide.yaml | $(GLIDE)
-	$(GLIDE) update
+	$(GLIDE_EXEC) update
 	@touch vendor
 
 glide.yaml: | $(GLIDE)
-	$(GLIDE) init --non-interactive
+	$(GLIDE_EXEC) init --non-interactive
 
 artifacts/build/%: vendor $(REQ) $(_SRC) | $(USE)
 	$(eval PARTS := $(subst /, ,$*))
