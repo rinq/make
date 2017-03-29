@@ -6,14 +6,17 @@
 # anything you want to COPY or ADD to the image.
 DOCKER_REQ ?=
 
-ifndef DOCKER_REPO
-$(error "DOCKER_REPO must be defined in the project's Makefile.")
-endif
-
+# The Docker image tag to build (and optionally publish).
+# This defaults to "dev" which is the tag used for local testing.
+# Never push the "dev" tag to the registry.
 ifdef TRAVIS_TAG
 DOCKER_TAG ?= $(TRAVIS_TAG)
 else
 DOCKER_TAG ?= dev
+endif
+
+ifndef DOCKER_REPO
+$(error "DOCKER_REPO must be defined in the project's Makefile.")
 endif
 
 ################################################################################
@@ -23,6 +26,10 @@ endif
 .PHONY: docker
 docker: artifacts/logs/docker/$(DOCKER_TAG)
 
+ifeq (dev,$(DOCKER_TAG))
+.PHONY: docker-push
+docker-push: $(error "The :dev tag must not be pushed to the registry.")
+else
 .PHONY: docker-push
 docker-push: docker
 	docker push $(DOCKER_REPO):$(DOCKER_TAG)
@@ -40,7 +47,8 @@ ifdef TRAVIS_TAG
 	docker push $(DOCKER_REPO):latest
 	docker push $(DOCKER_REPO):$(MAJOR)
 	docker push $(DOCKER_REPO):$(MAJOR).$(MINOR)
-endif
+endif # TRAVIS_TAG
+endif # DOCKER_TAG == dev
 
 .PHONY: docker-clean
 docker-clean::
