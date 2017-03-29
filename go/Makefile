@@ -152,7 +152,7 @@ ci: lint $(_COV)
 
 GLIDE := $(GOPATH)/bin/glide
 
- # workaround for https://github.com/Masterminds/glide/issues/771
+# workaround for https://github.com/Masterminds/glide/issues/771
 GLIDE_EXEC := GOPATH="$(GOPATH)" $(GLIDE)
 
 $(GLIDE):
