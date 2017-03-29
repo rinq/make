@@ -6,8 +6,6 @@ ifeq ($(.DEFAULT_GOAL),)
 .DEFAULT_GOAL := test
 endif
 
--include artifacts/make/common.mk
-
 # To override the variables in this section, define them in the project's
 # Makefile before including this file.
 
@@ -48,15 +46,6 @@ TEST_ARGS ?=
 REQ ?=
 USE ?=
 
-# Docker build configuration.
-# DOCKER_REPO must be defined in the project's Makefile.
-
-ifdef TRAVIS_TAG
-DOCKER_TAG ?= $(TRAVIS_TAG)
-else
-DOCKER_TAG ?= dev
-endif
-
 ################################################################################
 # Internal variables
 ################################################################################
@@ -84,6 +73,10 @@ _STEMS ?= $(_STEMS_NIX) $(_STEMS_WIN)
 
 # _COV contains the paths to a "cover.out" file for each package.
 _COV ?= $(foreach P,$(_PKGS),artifacts/tests/coverage/$(P)cover.out)
+
+# Add the linux release build to the docker requirements, for use with the
+# Docker Makefile.
+DOCKER_REQ ?= $(addprefix artifacts/build/release/linux/amd64/,$(_BINS))
 
 ################################################################################
 # Commands (Phony Targets)
@@ -118,7 +111,7 @@ clean-all:: clean
 	rm -rf ./vendor
 
 # Remove files that match the patterns .gitignore, excluding the vendor folder.
-.PHONY: clean docker-clean
+.PHONY: clean
 clean::
 	@git check-ignore ./* | grep -v ^./vendor | xargs -t -n1 rm -rf
 
@@ -144,47 +137,7 @@ lint: artifacts/logs/lint
 .PHONY: prepare
 prepare: lint artifacts/logs/errcheck test artifacts/logs/travis-lint
 
-ifdef DOCKER_REPO
-
-.PHONY: docker
-docker: artifacts/logs/docker/$(DOCKER_TAG)
-
-.PHONY: docker-clean
-docker-clean::
-	rm -f artifacts/logs/docker/$(DOCKER_TAG)
-	-docker image rm $(DOCKER_REPO):$(DOCKER_TAG)
-
-.PHONY: docker-push
-docker-push: docker
-	docker push $(DOCKER_REPO):$(DOCKER_TAG)
-
-ifdef TRAVIS_TAG
-	$(eval PARTS := $(subst ., ,$(DOCKER_TAG)))
-	$(eval MAJOR := $(word 1,$(PARTS)))
-	$(eval MINOR := $(word 2,$(PARTS)))
-	$(eval PATCH := $(word 3,$(PARTS)))
-
-	docker tag $(DOCKER_REPO):$(DOCKER_TAG) $(DOCKER_REPO):latest
-	docker tag $(DOCKER_REPO):$(DOCKER_TAG) $(DOCKER_REPO):$(MAJOR)
-	docker tag $(DOCKER_REPO):$(DOCKER_TAG) $(DOCKER_REPO):$(MAJOR).$(MINOR)
-
-	docker push $(DOCKER_REPO):latest
-	docker push $(DOCKER_REPO):$(MAJOR)
-	docker push $(DOCKER_REPO):$(MAJOR).$(MINOR)
-endif
-
-else # ifdef DOCKER_REPO
-
-.PHONY: docker
-docker:
-	@echo "DOCKER_REPO not defined in Makefile"
-	@false
-
-endif # ifdef DOCKER_REPO
-
 # Run the CI build.
-#
-# TODO: no need for the merged coverage file under travis CI, as codecov.io
 .PHONY: ci
 ci: lint $(_COV)
 	go test -race ./src/...
@@ -305,11 +258,6 @@ ifeq (,$(wildcard .travis.yml))
 else
 	travis lint | tee "$@"
 endif
-
-.SECONDARY: $(addprefix artifacts/build/release/linux/amd64/,$(_BINS))
-artifacts/logs/docker/%: Dockerfile $(addprefix artifacts/build/release/linux/amd64/,$(_BINS))
-	@mkdir -p "$(@D)"
-	docker build -t $(DOCKER_REPO):$* . | tee "$@"
 
 # extract the go environment values, even if they're not explicitly set
 # as environment variables, and convert them to Makefile format.
