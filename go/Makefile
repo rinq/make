@@ -315,9 +315,3 @@ artifacts/logs/docker/%: Dockerfile $(addprefix artifacts/build/release/linux/am
 # as environment variables, and convert them to Makefile format.
 artifacts/make/go-env.in:
 	env -i $(shell go env) | sed -n 's/^\([^=]*\)=\(..*\)/\1 ?= \2/gp' > "$@"
-
-.PHONY: init
-init:: .travis.yml
-
-.travis.yml:
-	curl --create-dirs '-#Lo' "$@" "https://rinq.github.io/make/go/skel/$(@:.%=%)?nonce=$$(date +%s)"
