@@ -2,13 +2,15 @@
 # Rinq Makefile for Go
 ################################################################################
 
+# To override the variables in this section, define them in the project's
+# Makefile before including this file.
+
 ifeq ($(.DEFAULT_GOAL),)
 .DEFAULT_GOAL := test
 endif
 
-# To override the variables in this section, define them in the project's
-# Makefile before including this file.
-
+# Project name is a short name for the project, used to build the names of
+# release archives, for example.
 PROJECT_NAME ?= $(notdir $(shell pwd))
 
 # Disable CGO by default.
@@ -64,7 +66,6 @@ _PKGS ?= $(sort $(dir $(_SRC)))
 # _BINS contains the names of binaries (directories under ./src/cmd)
 _BINS ?= $(notdir $(shell find src/cmd -mindepth 1 -maxdepth 1 -type d 2>/dev/null))
 _BINS_WIN := $(addsuffix .exe,$(_BINS))
-
 
 # _STEMS contains the binary names for each entry in the MATRIX (e.g. darwin/amd64/<bin>)
 _STEMS_NIX := $(foreach B,$(_MATRIX_NIX),$(foreach BIN,$(_BINS),$(B)/$(BIN)))
