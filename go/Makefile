@@ -176,11 +176,11 @@ $(GOMETALINTER):
 	$(GOMETALINTER) --install 2>/dev/null
 
 vendor: glide.lock | $(GLIDE)
-	$(GLIDE_EXEC) install
+	$(GLIDE_EXEC) install --strip-vendor
 	@touch vendor
 
 glide.lock: glide.yaml | $(GLIDE)
-	$(GLIDE_EXEC) update
+	$(GLIDE_EXEC) update --strip-vendor
 	@touch vendor
 
 glide.yaml: | $(GLIDE)
