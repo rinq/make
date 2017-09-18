@@ -26,28 +26,11 @@ endif
 .PHONY: docker
 docker: artifacts/logs/docker/$(DOCKER_TAG)
 
-ifeq (dev,$(DOCKER_TAG))
 .PHONY: docker-push
-docker-push: $(error "The :dev tag must not be pushed to the registry.")
+ifeq ($(DOCKER_TAG),dev)
+	$(error "Don't push the :dev tag to the registry!")
 else
-.PHONY: docker-push
-docker-push: docker
 	docker push $(DOCKER_REPO):$(DOCKER_TAG)
-
-ifdef TRAVIS_TAG
-	$(eval PARTS := $(subst ., ,$(DOCKER_TAG)))
-	$(eval MAJOR := $(word 1,$(PARTS)))
-	$(eval MINOR := $(word 2,$(PARTS)))
-	$(eval PATCH := $(word 3,$(PARTS)))
-
-	docker tag $(DOCKER_REPO):$(DOCKER_TAG) $(DOCKER_REPO):latest
-	docker tag $(DOCKER_REPO):$(DOCKER_TAG) $(DOCKER_REPO):$(MAJOR)
-	docker tag $(DOCKER_REPO):$(DOCKER_TAG) $(DOCKER_REPO):$(MAJOR).$(MINOR)
-
-	docker push $(DOCKER_REPO):latest
-	docker push $(DOCKER_REPO):$(MAJOR)
-	docker push $(DOCKER_REPO):$(MAJOR).$(MINOR)
-endif # TRAVIS_TAG
 endif # DOCKER_TAG == dev
 
 .PHONY: docker-clean
