@@ -170,9 +170,10 @@ ERRCHECK := $(GOPATH)/bin/errcheck
 $(ERRCHECK):
 	go get -u github.com/kisielk/errcheck
 
-GOMETALINTER := $(GOPATH)/bin/gometalinter.v1
+GOMETALINTER := $(GOPATH)/bin/gometalinter
+.PRECIOUS: $(GOMETALINTER)
 $(GOMETALINTER):
-	go get -u gopkg.in/alecthomas/gometalinter.v1
+	go get -u gopkg.in/alecthomas/gometalinter
 	$(GOMETALINTER) --install 2>/dev/null
 
 vendor: glide.lock | $(GLIDE)
@@ -229,7 +230,7 @@ artifacts/logs/lint: vendor $(_SRC) $(REQ) | $(MISSPELL) $(GOMETALINTER) $(USE)
 
 	$(MISSPELL) -w -error -locale US ./src | tee -a "$@"
 
-	$(GOMETALINTER) --vendor --disable-all --deadline=30s \
+	$(GOMETALINTER) --disable-all --deadline=60s \
 		--enable=vet \
 		--enable=vetshadow \
 		--enable=ineffassign \
@@ -238,7 +239,7 @@ artifacts/logs/lint: vendor $(_SRC) $(REQ) | $(MISSPELL) $(GOMETALINTER) $(USE)
 		--enable=gofmt \
 		./src/... | tee -a "$@"
 
-	-$(GOMETALINTER) --vendor --disable-all --deadline=30s --cyclo-over=15 \
+	-$(GOMETALINTER) --disable-all --deadline=60s --cyclo-over=15 \
 		--enable=golint \
 		--enable=goconst \
 		--enable=gocyclo \
