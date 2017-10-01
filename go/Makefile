@@ -173,7 +173,7 @@ $(ERRCHECK):
 GOMETALINTER := $(GOPATH)/bin/gometalinter
 .PRECIOUS: $(GOMETALINTER)
 $(GOMETALINTER):
-	go get -u gopkg.in/alecthomas/gometalinter
+	go get -u github.com/alecthomas/gometalinter
 	$(GOMETALINTER) --install 2>/dev/null
 
 vendor: glide.lock | $(GLIDE)
